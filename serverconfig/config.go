@@ -24,7 +24,7 @@ func LoadConfig() (*Config, error) {
 		DatabaseURL: getEnv("DATABASE_URL", "postgres"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
-	}
+	}, nil
 }
 
 func getEnv(key, defaultValue string) string {
