@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -19,8 +20,10 @@ var students = []Student{
 }
 
 func getStudents(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "GET /students received")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(students)
 }
+
 func main() {
 	http.HandleFunc("/students", getStudents)
 	fmt.Println(students)
