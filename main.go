@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 type Student struct {
 	ID    int    `json:"id"`
@@ -9,11 +12,18 @@ type Student struct {
 	Email string `json:"email"`
 }
 
+var students = []Student{
+	{ID: 1, Name: "Chetna Bhati", Age: 23, Email: "chetnabhati343@gmail.com"},
+	{ID: 2, Name: "test01", Age: 82, Email: "test01@gmail.com"},
+	{ID: 3, Name: "test02", Age: 41, Email: "test00@gmail.com"},
+}
+
+func getStudents(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "GET /students received")
+}
 func main() {
-	students := []Student{
-		{ID: 1, Name: "Chetna Bhati", Age: 23, Email: "chetnabhati343@gmail.com"},
-		{ID: 2, Name: "test01", Age: 82, Email: "test01@gmail.com"},
-		{ID: 3, Name: "test02", Age: 41, Email: "test00@gmail.com"},
-	}
+	http.HandleFunc("/students", getStudents)
 	fmt.Println(students)
+
+	http.ListenAndServe(":8080", nil)
 }
