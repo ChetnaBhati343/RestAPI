@@ -24,9 +24,12 @@ func getStudents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(students)
 }
 
+func getStudent(w http.ResponseWriter, r *http.Request) {
+	fmt.Println((r.PathValue("id")))
+}
 func main() {
 	http.HandleFunc("/students", getStudents)
 	fmt.Println(students)
-
+	http.HandleFunc("/students/{id}", getStudent)
 	http.ListenAndServe(":8080", nil)
 }
