@@ -20,6 +20,8 @@ var students = []Student{
 	{ID: 3, Name: "test02", Age: 41, Email: "test00@gmail.com"},
 }
 
+var nextID = 4
+
 func getStudents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(students)
@@ -46,8 +48,49 @@ func getStudent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Student not found", http.StatusNotFound)
 	}
 }
+
+func postStudent(w http.ResponseWriter, r *http.Request) {
+	var newStudent Student
+	err := json.NewDecoder(r.Body).Decode(&newStudent)
+
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if newStudent.Name == "" {
+		http.Error(w, "Name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if newStudent.Age <= 0 {
+		http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
+		return
+	}
+
+	if newStudent.Email == "" {
+		http.Error(w, "Email cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	for _, student := range students {
+		if newStudent.Email == student.Email {
+			http.Error(w, "Email already exists", http.StatusConflict)
+			return
+		}
+	}
+
+	newStudent.ID = nextID
+	nextID++
+	students = append(students, newStudent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(newStudent)
+}
+
 func main() {
-	http.HandleFunc("/students", getStudents)
+	http.HandleFunc("GET /students", getStudents)
+	http.HandleFunc("POST /students", postStudent)
 	fmt.Println(students)
 	http.HandleFunc("/students/{id}", getStudent)
 	http.ListenAndServe(":8080", nil)
