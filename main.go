@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 type Student struct {
@@ -25,7 +26,25 @@ func getStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func getStudent(w http.ResponseWriter, r *http.Request) {
-	fmt.Println((r.PathValue("id")))
+	w.Header().Set("Content-Type", "application/json")
+	//fmt.Println((r.PathValue("id")))
+	getId := r.PathValue("id")
+	intId, err := strconv.Atoi(getId)
+	if err != nil {
+		http.Error(w, "Invalid student ID", http.StatusBadRequest)
+		return
+	}
+	found := false
+	for _, student := range students {
+		if student.ID == intId {
+			found = true
+			json.NewEncoder(w).Encode(student)
+
+		}
+	}
+	if !found {
+		http.Error(w, "Student not found", http.StatusNotFound)
+	}
 }
 func main() {
 	http.HandleFunc("/students", getStudents)
