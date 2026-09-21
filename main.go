@@ -88,9 +88,61 @@ func postStudent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newStudent)
 }
 
+func updateStudent(w http.ResponseWriter, r *http.Request) {
+	getId := r.PathValue("id")
+	intId, err := strconv.Atoi(getId)
+
+	if err != nil {
+		http.Error(w, "Invalid student ID", http.StatusBadRequest)
+		return
+	}
+	found := false
+	var updatedStudent Student
+
+	for i := range students {
+		if students[i].ID == intId {
+			found = true
+			err := json.NewDecoder(r.Body).Decode(&updatedStudent)
+
+			if err != nil {
+				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				return
+			}
+			updatedStudent.ID = intId
+			if updatedStudent.Age <= 0 {
+				http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
+				return
+			}
+			if updatedStudent.Name == "" {
+				http.Error(w, "Name cannot be empty", http.StatusBadRequest)
+				return
+			}
+			if updatedStudent.Email == "" {
+				http.Error(w, "Email cannot be empty", http.StatusBadRequest)
+				return
+			}
+			for _, student := range students {
+				if updatedStudent.Email == student.Email && updatedStudent.ID != student.ID {
+					http.Error(w, "Email already exists", http.StatusConflict)
+					return
+				}
+			}
+			students[i] = updatedStudent
+			break
+		}
+	}
+	if !found {
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedStudent)
+}
+
 func main() {
 	http.HandleFunc("GET /students", getStudents)
 	http.HandleFunc("POST /students", postStudent)
+	http.HandleFunc("PUT /students/{id}", updateStudent)
 	fmt.Println(students)
 	http.HandleFunc("/students/{id}", getStudent)
 	http.ListenAndServe(":8080", nil)
