@@ -157,7 +157,7 @@ func deleteStudent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Student not found", http.StatusNotFound)
 		return
 	}
-	http.Error(w, "Student deleted successfully.", http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 
 }
 
