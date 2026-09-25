@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -139,11 +138,34 @@ func updateStudent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedStudent)
 }
 
+func deleteStudent(w http.ResponseWriter, r *http.Request) {
+	getId := r.PathValue("id")
+	intId, err := strconv.Atoi(getId)
+	if err != nil {
+		http.Error(w, "Invalid student ID", http.StatusBadRequest)
+		return
+	}
+	found := false
+	for i := range students {
+		if students[i].ID == intId {
+			found = true
+			students = append(students[:i], students[i+1:]...)
+			break
+		}
+	}
+	if !found {
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+	http.Error(w, "Student deleted successfully.", http.StatusOK)
+
+}
+
 func main() {
 	http.HandleFunc("GET /students", getStudents)
 	http.HandleFunc("POST /students", postStudent)
 	http.HandleFunc("PUT /students/{id}", updateStudent)
-	fmt.Println(students)
 	http.HandleFunc("/students/{id}", getStudent)
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("DELETE /students/{id}", deleteStudent)
+	http.ListenAndServe(":8081", nil)
 }
