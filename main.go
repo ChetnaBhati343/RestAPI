@@ -165,7 +165,7 @@ func main() {
 	http.HandleFunc("GET /students", getStudents)
 	http.HandleFunc("POST /students", postStudent)
 	http.HandleFunc("PUT /students/{id}", updateStudent)
-	http.HandleFunc("/students/{id}", getStudent)
+	http.HandleFunc("GET /students/{id}", getStudent)
 	http.HandleFunc("DELETE /students/{id}", deleteStudent)
 	http.ListenAndServe(":8081", nil)
 }
