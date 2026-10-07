@@ -26,6 +26,12 @@ func getStudents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(students)
 }
 
+// @Summary Get all students
+// @Description Returns a list of all students
+// @Tags Students
+// @Produce json
+// @Success 200 {array} Student
+// @Router /students [get]
 func getStudent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	//fmt.Println((r.PathValue("id")))
@@ -161,6 +167,10 @@ func deleteStudent(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// @title Student REST API
+// @version 1.0
+// @description REST API for managing student records.
+// @host localhost:8081
 func main() {
 	http.HandleFunc("GET /students", getStudents)
 	http.HandleFunc("POST /students", postStudent)
