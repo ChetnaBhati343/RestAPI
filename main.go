@@ -21,6 +21,12 @@ var students = []Student{
 
 var nextID = 4
 
+// @Summary Get all students
+// @Description Returns a list of all students
+// @Tags Students
+// @Produce json
+// @Success 200 {array} Student
+// @Router /students [get]
 func getStudents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(students)
