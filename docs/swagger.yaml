@@ -32,4 +32,122 @@ paths:
       summary: Get all students
       tags:
       - Students
+    post:
+      consumes:
+      - application/json
+      description: Creates a new student record
+      parameters:
+      - description: Student details
+        in: body
+        name: student
+        required: true
+        schema:
+          $ref: '#/definitions/main.Student'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.Student'
+        "400":
+          description: Invalid JSON or invalid student details
+          schema:
+            type: string
+        "409":
+          description: Email already exists
+          schema:
+            type: string
+      summary: Create a new student
+      tags:
+      - Students
+  /students/{id}:
+    delete:
+      description: Deletes a student with the specified ID
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Student deleted successfully
+        "400":
+          description: Invalid student ID
+          schema:
+            type: string
+        "404":
+          description: Student not found
+          schema:
+            type: string
+      summary: Delete student by ID
+      tags:
+      - Students
+    get:
+      description: Returns a student with the specified ID
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Student'
+        "400":
+          description: Invalid student ID
+          schema:
+            type: string
+        "404":
+          description: Student not found
+          schema:
+            type: string
+      summary: Get student by ID
+      tags:
+      - Students
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated student details
+        in: body
+        name: student
+        required: true
+        schema:
+          $ref: '#/definitions/main.Student'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Student'
+        "400":
+          description: Invalid student ID, JSON or student details
+          schema:
+            type: string
+        "404":
+          description: Student not found
+          schema:
+            type: string
+        "409":
+          description: Email already exists
+          schema:
+            type: string
+      summary: Update an existing student
+      tags:
+      - Students
 swagger: "2.0"

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	_ "github.com/ChetnaBhati343/RestAPI/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Student struct {
@@ -32,12 +35,15 @@ func getStudents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(students)
 }
 
-// @Summary Get all students
-// @Description Returns a list of all students
+// @Summary Get student by ID
+// @Description Returns a student with the specified ID
 // @Tags Students
 // @Produce json
-// @Success 200 {array} Student
-// @Router /students [get]
+// @Param id path int true "Student ID"
+// @Success 200 {object} Student
+// @Failure 400 {string} string "Invalid student ID"
+// @Failure 404 {string} string "Student not found"
+// @Router /students/{id} [get]
 func getStudent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	//fmt.Println((r.PathValue("id")))
@@ -60,6 +66,16 @@ func getStudent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Create a new student
+// @Description Creates a new student record
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Param student body Student true "Student details"
+// @Success 201 {object} Student
+// @Failure 400 {string} string "Invalid JSON or invalid student details"
+// @Failure 409 {string} string "Email already exists"
+// @Router /students [post]
 func postStudent(w http.ResponseWriter, r *http.Request) {
 	var newStudent Student
 	err := json.NewDecoder(r.Body).Decode(&newStudent)
@@ -99,6 +115,18 @@ func postStudent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newStudent)
 }
 
+// @Summary Update an existing student
+// @Description Updates the details of an existing student
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Param id path int true "Student ID"
+// @Param student body Student true "Updated student details"
+// @Success 200 {object} Student
+// @Failure 400 {string} string "Invalid student ID, JSON or student details"
+// @Failure 404 {string} string "Student not found"
+// @Failure 409 {string} string "Email already exists"
+// @Router /students/{id} [put]
 func updateStudent(w http.ResponseWriter, r *http.Request) {
 	getId := r.PathValue("id")
 	intId, err := strconv.Atoi(getId)
@@ -150,6 +178,15 @@ func updateStudent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedStudent)
 }
 
+// @Summary Delete student by ID
+// @Description Deletes a student with the specified ID
+// @Tags Students
+// @Produce json
+// @Param id path int true "Student ID"
+// @Success 204 "Student deleted successfully"
+// @Failure 400 {string} string "Invalid student ID"
+// @Failure 404 {string} string "Student not found"
+// @Router /students/{id} [delete]
 func deleteStudent(w http.ResponseWriter, r *http.Request) {
 	getId := r.PathValue("id")
 	intId, err := strconv.Atoi(getId)
@@ -183,5 +220,10 @@ func main() {
 	http.HandleFunc("PUT /students/{id}", updateStudent)
 	http.HandleFunc("GET /students/{id}", getStudent)
 	http.HandleFunc("DELETE /students/{id}", deleteStudent)
+
+	// Register Swagger UI route
+	http.HandleFunc("/swagger/", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
+	))
 	http.ListenAndServe(":8081", nil)
 }
