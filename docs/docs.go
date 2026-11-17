@@ -31,8 +31,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/main.Student"
+                                "$ref": "#/definitions/models.Student"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve students",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -56,7 +62,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     }
                 ],
@@ -64,7 +70,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -75,6 +81,12 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Email already exists",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create student",
                         "schema": {
                             "type": "string"
                         }
@@ -105,7 +117,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -116,6 +128,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Student not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve student",
                         "schema": {
                             "type": "string"
                         }
@@ -148,7 +166,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     }
                 ],
@@ -156,7 +174,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -218,7 +236,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.Student": {
+        "models.Student": {
             "type": "object",
             "properties": {
                 "age": {

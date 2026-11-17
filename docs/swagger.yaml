@@ -1,5 +1,5 @@
 definitions:
-  main.Student:
+  models.Student:
     properties:
       age:
         type: integer
@@ -27,8 +27,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/main.Student'
+              $ref: '#/definitions/models.Student'
             type: array
+        "500":
+          description: Failed to retrieve students
+          schema:
+            type: string
       summary: Get all students
       tags:
       - Students
@@ -42,20 +46,24 @@ paths:
         name: student
         required: true
         schema:
-          $ref: '#/definitions/main.Student'
+          $ref: '#/definitions/models.Student'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/main.Student'
+            $ref: '#/definitions/models.Student'
         "400":
           description: Invalid JSON or invalid student details
           schema:
             type: string
         "409":
           description: Email already exists
+          schema:
+            type: string
+        "500":
+          description: Failed to create student
           schema:
             type: string
       summary: Create a new student
@@ -100,13 +108,17 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.Student'
+            $ref: '#/definitions/models.Student'
         "400":
           description: Invalid student ID
           schema:
             type: string
         "404":
           description: Student not found
+          schema:
+            type: string
+        "500":
+          description: Failed to retrieve student
           schema:
             type: string
       summary: Get student by ID
@@ -127,14 +139,14 @@ paths:
         name: student
         required: true
         schema:
-          $ref: '#/definitions/main.Student'
+          $ref: '#/definitions/models.Student'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.Student'
+            $ref: '#/definitions/models.Student'
         "400":
           description: Invalid student ID, JSON or student details
           schema:

@@ -24,8 +24,14 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/main.Student"
+                                "$ref": "#/definitions/models.Student"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve students",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -49,7 +55,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     }
                 ],
@@ -57,7 +63,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -68,6 +74,12 @@
                     },
                     "409": {
                         "description": "Email already exists",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create student",
                         "schema": {
                             "type": "string"
                         }
@@ -98,7 +110,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -109,6 +121,12 @@
                     },
                     "404": {
                         "description": "Student not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve student",
                         "schema": {
                             "type": "string"
                         }
@@ -141,7 +159,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     }
                 ],
@@ -149,7 +167,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.Student"
+                            "$ref": "#/definitions/models.Student"
                         }
                     },
                     "400": {
@@ -211,7 +229,7 @@
         }
     },
     "definitions": {
-        "main.Student": {
+        "models.Student": {
             "type": "object",
             "properties": {
                 "age": {

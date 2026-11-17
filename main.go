@@ -1,38 +1,39 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/ChetnaBhati343/RestAPI/database"
 	_ "github.com/ChetnaBhati343/RestAPI/docs"
+	"github.com/ChetnaBhati343/RestAPI/models"
+	"github.com/ChetnaBhati343/RestAPI/repository"
+	"github.com/jackc/pgx/v5/pgconn"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
-
-type Student struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Age   int    `json:"age"`
-	Email string `json:"email"`
-}
-
-var students = []Student{
-	{ID: 1, Name: "Chetna Bhati", Age: 23, Email: "chetnabhati343@gmail.com"},
-	{ID: 2, Name: "test01", Age: 82, Email: "test01@gmail.com"},
-	{ID: 3, Name: "test02", Age: 41, Email: "test00@gmail.com"},
-}
-
-var nextID = 4
 
 // @Summary Get all students
 // @Description Returns a list of all students
 // @Tags Students
 // @Produce json
-// @Success 200 {array} Student
+// @Success 200 {array} models.Student
+// @Failure 500 {string} string "Failed to retrieve students"
 // @Router /students [get]
-func getStudents(w http.ResponseWriter, r *http.Request) {
+func getStudents(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
+	allStudents, err := studentRepo.GetAllStudents()
+
+	if err != nil {
+		log.Printf("Failed to retrieve students: %v", err)
+		http.Error(w, "Failed to retrieve students", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(students)
+	json.NewEncoder(w).Encode(allStudents)
 }
 
 // @Summary Get student by ID
@@ -40,30 +41,36 @@ func getStudents(w http.ResponseWriter, r *http.Request) {
 // @Tags Students
 // @Produce json
 // @Param id path int true "Student ID"
-// @Success 200 {object} Student
+// @Success 200 {object} models.Student
 // @Failure 400 {string} string "Invalid student ID"
 // @Failure 404 {string} string "Student not found"
+// @Failure 500 {string} string "Failed to retrieve student"
 // @Router /students/{id} [get]
-func getStudent(w http.ResponseWriter, r *http.Request) {
+func getStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
 	w.Header().Set("Content-Type", "application/json")
-	//fmt.Println((r.PathValue("id")))
+
 	getId := r.PathValue("id")
 	intId, err := strconv.Atoi(getId)
+
 	if err != nil {
 		http.Error(w, "Invalid student ID", http.StatusBadRequest)
 		return
 	}
-	found := false
-	for _, student := range students {
-		if student.ID == intId {
-			found = true
-			json.NewEncoder(w).Encode(student)
 
+	student, err := studentRepo.GetStudentByID(intId)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Student not found", http.StatusNotFound)
+			return
 		}
+
+		log.Printf("Failed to retrieve student: %v", err)
+		http.Error(w, "Failed to retrieve student", http.StatusInternalServerError)
+		return
 	}
-	if !found {
-		http.Error(w, "Student not found", http.StatusNotFound)
-	}
+
+	json.NewEncoder(w).Encode(student)
 }
 
 // @Summary Create a new student
@@ -71,13 +78,15 @@ func getStudent(w http.ResponseWriter, r *http.Request) {
 // @Tags Students
 // @Accept json
 // @Produce json
-// @Param student body Student true "Student details"
-// @Success 201 {object} Student
+// @Param student body models.Student true "Student details"
+// @Success 201 {object} models.Student
 // @Failure 400 {string} string "Invalid JSON or invalid student details"
 // @Failure 409 {string} string "Email already exists"
+// @Failure 500 {string} string "Failed to create student"
 // @Router /students [post]
-func postStudent(w http.ResponseWriter, r *http.Request) {
-	var newStudent Student
+func postStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
+	var newStudent models.Student
+
 	err := json.NewDecoder(r.Body).Decode(&newStudent)
 
 	if err != nil {
@@ -100,19 +109,24 @@ func postStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, student := range students {
-		if newStudent.Email == student.Email {
+	createdStudent, err := studentRepo.CreateStudent(newStudent)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			http.Error(w, "Email already exists", http.StatusConflict)
 			return
 		}
+
+		log.Printf("Failed to create student: %v", err)
+		http.Error(w, "Failed to create student", http.StatusInternalServerError)
+		return
 	}
 
-	newStudent.ID = nextID
-	nextID++
-	students = append(students, newStudent)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newStudent)
+	json.NewEncoder(w).Encode(createdStudent)
 }
 
 // @Summary Update an existing student
@@ -121,13 +135,13 @@ func postStudent(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Student ID"
-// @Param student body Student true "Updated student details"
-// @Success 200 {object} Student
+// @Param student body models.Student true "Updated student details"
+// @Success 200 {object} models.Student
 // @Failure 400 {string} string "Invalid student ID, JSON or student details"
 // @Failure 404 {string} string "Student not found"
 // @Failure 409 {string} string "Email already exists"
 // @Router /students/{id} [put]
-func updateStudent(w http.ResponseWriter, r *http.Request) {
+func updateStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
 	getId := r.PathValue("id")
 	intId, err := strconv.Atoi(getId)
 
@@ -135,45 +149,51 @@ func updateStudent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid student ID", http.StatusBadRequest)
 		return
 	}
-	found := false
-	var updatedStudent Student
 
-	for i := range students {
-		if students[i].ID == intId {
-			found = true
-			err := json.NewDecoder(r.Body).Decode(&updatedStudent)
+	var updatedStudent models.Student
 
-			if err != nil {
-				http.Error(w, "Invalid JSON", http.StatusBadRequest)
-				return
-			}
-			updatedStudent.ID = intId
-			if updatedStudent.Age <= 0 {
-				http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
-				return
-			}
-			if updatedStudent.Name == "" {
-				http.Error(w, "Name cannot be empty", http.StatusBadRequest)
-				return
-			}
-			if updatedStudent.Email == "" {
-				http.Error(w, "Email cannot be empty", http.StatusBadRequest)
-				return
-			}
-			for _, student := range students {
-				if updatedStudent.Email == student.Email && updatedStudent.ID != student.ID {
-					http.Error(w, "Email already exists", http.StatusConflict)
-					return
-				}
-			}
-			students[i] = updatedStudent
-			break
-		}
-	}
-	if !found {
-		http.Error(w, "Student not found", http.StatusNotFound)
+	err = json.NewDecoder(r.Body).Decode(&updatedStudent)
+
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+
+	if updatedStudent.Name == "" {
+		http.Error(w, "Name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if updatedStudent.Age <= 0 {
+		http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
+		return
+	}
+
+	if updatedStudent.Email == "" {
+		http.Error(w, "Email cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	updatedStudent, err = studentRepo.UpdateStudent(intId, updatedStudent)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Student not found", http.StatusNotFound)
+			return
+		}
+
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			http.Error(w, "Email already exists", http.StatusConflict)
+			return
+		}
+
+		log.Printf("Failed to update student: %v", err)
+		http.Error(w, "Failed to update student", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedStudent)
 }
@@ -186,28 +206,31 @@ func updateStudent(w http.ResponseWriter, r *http.Request) {
 // @Success 204 "Student deleted successfully"
 // @Failure 400 {string} string "Invalid student ID"
 // @Failure 404 {string} string "Student not found"
+// @Failure 500 {string} string "Failed to delete student"
 // @Router /students/{id} [delete]
-func deleteStudent(w http.ResponseWriter, r *http.Request) {
+func deleteStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
 	getId := r.PathValue("id")
 	intId, err := strconv.Atoi(getId)
+
 	if err != nil {
 		http.Error(w, "Invalid student ID", http.StatusBadRequest)
 		return
 	}
-	found := false
-	for i := range students {
-		if students[i].ID == intId {
-			found = true
-			students = append(students[:i], students[i+1:]...)
-			break
+
+	err = studentRepo.DeleteStudent(intId)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Student not found", http.StatusNotFound)
+			return
 		}
-	}
-	if !found {
-		http.Error(w, "Student not found", http.StatusNotFound)
+
+		log.Printf("Failed to delete student: %v", err)
+		http.Error(w, "Failed to delete student", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
 
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // @title Student REST API
@@ -215,15 +238,42 @@ func deleteStudent(w http.ResponseWriter, r *http.Request) {
 // @description REST API for managing student records.
 // @host localhost:8081
 func main() {
-	http.HandleFunc("GET /students", getStudents)
-	http.HandleFunc("POST /students", postStudent)
-	http.HandleFunc("PUT /students/{id}", updateStudent)
-	http.HandleFunc("GET /students/{id}", getStudent)
-	http.HandleFunc("DELETE /students/{id}", deleteStudent)
+	db, err := database.Connect()
 
-	// Register Swagger UI route
+	if err != nil {
+		log.Fatal("Database connection failed: ", err)
+	}
+
+	defer db.Close()
+
+	log.Println("Connected to PostgreSQL successfully")
+
+	studentRepo := repository.NewStudentRepository(db)
+
+	// Register student API routes.
+	http.HandleFunc("GET /students", func(w http.ResponseWriter, r *http.Request) {
+		getStudents(w, r, studentRepo)
+	})
+
+	http.HandleFunc("POST /students", func(w http.ResponseWriter, r *http.Request) {
+		postStudent(w, r, studentRepo)
+	})
+
+	http.HandleFunc("GET /students/{id}", func(w http.ResponseWriter, r *http.Request) {
+		getStudent(w, r, studentRepo)
+	})
+
+	http.HandleFunc("PUT /students/{id}", func(w http.ResponseWriter, r *http.Request) {
+		updateStudent(w, r, studentRepo)
+	})
+	http.HandleFunc("DELETE /students/{id}", func(w http.ResponseWriter, r *http.Request) {
+		deleteStudent(w, r, studentRepo)
+	})
+	// Register Swagger UI route.
 	http.HandleFunc("/swagger/", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
 	))
-	http.ListenAndServe(":8081", nil)
+
+	log.Println("Server starting on http://localhost:8081")
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
