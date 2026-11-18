@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/ChetnaBhati343/RestAPI/models"
@@ -18,12 +19,12 @@ func NewStudentRepository(db *sql.DB) *StudentRepository {
 }
 
 // GetAllStudents retrieves all student records from PostgreSQL.
-func (r *StudentRepository) GetAllStudents() ([]models.Student, error) {
-	query := `SELECT id, name, age, email
+func (r *StudentRepository) GetAllStudents(ctx context.Context) ([]models.Student, error) {
+	query := `SELECT id, name, age, email, created_at
 	          FROM students
 	          ORDER BY id`
 
-	rows, err := r.db.Query(query)
+	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +40,7 @@ func (r *StudentRepository) GetAllStudents() ([]models.Student, error) {
 			&student.Name,
 			&student.Age,
 			&student.Email,
+			&student.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -55,19 +57,20 @@ func (r *StudentRepository) GetAllStudents() ([]models.Student, error) {
 }
 
 // GetStudentByID retrieves a student using their ID.
-func (r *StudentRepository) GetStudentByID(id int) (models.Student, error) {
+func (r *StudentRepository) GetStudentByID(ctx context.Context, id int) (models.Student, error) {
 
 	var student models.Student
 
-	query := `SELECT id, name, age, email
+	query := `SELECT id, name, age, email, created_at
 	          FROM students
 	          WHERE id = $1`
 
-	err := r.db.QueryRow(query, id).Scan(
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&student.ID,
 		&student.Name,
 		&student.Age,
 		&student.Email,
+		&student.CreatedAt,
 	)
 
 	if err != nil {
@@ -78,13 +81,14 @@ func (r *StudentRepository) GetStudentByID(id int) (models.Student, error) {
 }
 
 // CreateStudent inserts a new student record into PostgreSQL.
-func (r *StudentRepository) CreateStudent(student models.Student) (models.Student, error) {
+func (r *StudentRepository) CreateStudent(ctx context.Context, student models.Student) (models.Student, error) {
 
 	query := `INSERT INTO students (name, age, email)
 	          VALUES ($1, $2, $3)
-	          RETURNING id, name, age, email`
+	          RETURNING id, name, age, email, created_at`
 
-	err := r.db.QueryRow(
+	err := r.db.QueryRowContext(
+		ctx,
 		query,
 		student.Name,
 		student.Age,
@@ -94,6 +98,7 @@ func (r *StudentRepository) CreateStudent(student models.Student) (models.Studen
 		&student.Name,
 		&student.Age,
 		&student.Email,
+		&student.CreatedAt,
 	)
 
 	if err != nil {
@@ -104,14 +109,15 @@ func (r *StudentRepository) CreateStudent(student models.Student) (models.Studen
 }
 
 // UpdateStudent updates an existing student record in PostgreSQL.
-func (r *StudentRepository) UpdateStudent(id int, student models.Student) (models.Student, error) {
+func (r *StudentRepository) UpdateStudent(ctx context.Context, id int, student models.Student) (models.Student, error) {
 
 	query := `UPDATE students
               SET name = $1, age = $2, email = $3
               WHERE id = $4
-              RETURNING id, name, age, email`
+              RETURNING id, name, age, email, created_at`
 
-	err := r.db.QueryRow(
+	err := r.db.QueryRowContext(
+		ctx,
 		query,
 		student.Name,
 		student.Age,
@@ -122,6 +128,7 @@ func (r *StudentRepository) UpdateStudent(id int, student models.Student) (model
 		&student.Name,
 		&student.Age,
 		&student.Email,
+		&student.CreatedAt,
 	)
 
 	if err != nil {
@@ -132,11 +139,11 @@ func (r *StudentRepository) UpdateStudent(id int, student models.Student) (model
 }
 
 // DeleteStudent deletes a student record from PostgreSQL.
-func (r *StudentRepository) DeleteStudent(id int) error {
+func (r *StudentRepository) DeleteStudent(ctx context.Context, id int) error {
 	query := `DELETE FROM students
 			  WHERE id = $1`
 
-	result, err := r.db.Exec(query, id)
+	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,19 @@
 definitions:
+  models.CreateStudentRequest:
+    properties:
+      age:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+    type: object
   models.Student:
     properties:
       age:
         type: integer
+      created_at:
+        type: string
       email:
         type: string
       id:
@@ -10,7 +21,15 @@ definitions:
       name:
         type: string
     type: object
-host: localhost:8081
+  models.UpdateStudentRequest:
+    properties:
+      age:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+    type: object
 info:
   contact: {}
   description: REST API for managing student records.
@@ -46,7 +65,7 @@ paths:
         name: student
         required: true
         schema:
-          $ref: '#/definitions/models.Student'
+          $ref: '#/definitions/models.CreateStudentRequest'
       produces:
       - application/json
       responses:
@@ -89,6 +108,10 @@ paths:
             type: string
         "404":
           description: Student not found
+          schema:
+            type: string
+        "500":
+          description: Failed to delete student
           schema:
             type: string
       summary: Delete student by ID
@@ -139,7 +162,7 @@ paths:
         name: student
         required: true
         schema:
-          $ref: '#/definitions/models.Student'
+          $ref: '#/definitions/models.UpdateStudentRequest'
       produces:
       - application/json
       responses:
@@ -157,6 +180,10 @@ paths:
             type: string
         "409":
           description: Email already exists
+          schema:
+            type: string
+        "500":
+          description: Failed to update student
           schema:
             type: string
       summary: Update an existing student

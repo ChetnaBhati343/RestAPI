@@ -14,6 +14,8 @@ import (
 	"github.com/ChetnaBhati343/RestAPI/repository"
 	"github.com/jackc/pgx/v5/pgconn"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"net"
+	"os"
 )
 
 // @Summary Get all students
@@ -24,8 +26,7 @@ import (
 // @Failure 500 {string} string "Failed to retrieve students"
 // @Router /students [get]
 func getStudents(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
-	allStudents, err := studentRepo.GetAllStudents()
-
+	allStudents, err := studentRepo.GetAllStudents(r.Context())
 	if err != nil {
 		log.Printf("Failed to retrieve students: %v", err)
 		http.Error(w, "Failed to retrieve students", http.StatusInternalServerError)
@@ -57,8 +58,7 @@ func getStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.
 		return
 	}
 
-	student, err := studentRepo.GetStudentByID(intId)
-
+	student, err := studentRepo.GetStudentByID(r.Context(), intId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -78,39 +78,44 @@ func getStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.
 // @Tags Students
 // @Accept json
 // @Produce json
-// @Param student body models.Student true "Student details"
+// @Param student body models.CreateStudentRequest true "Student details"
 // @Success 201 {object} models.Student
 // @Failure 400 {string} string "Invalid JSON or invalid student details"
 // @Failure 409 {string} string "Email already exists"
 // @Failure 500 {string} string "Failed to create student"
 // @Router /students [post]
 func postStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
-	var newStudent models.Student
+	var request models.CreateStudentRequest
 
-	err := json.NewDecoder(r.Body).Decode(&newStudent)
+	err := json.NewDecoder(r.Body).Decode(&request)
 
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if newStudent.Name == "" {
+	if request.Name == "" {
 		http.Error(w, "Name cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	if newStudent.Age <= 0 {
+	if request.Age <= 0 {
 		http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
 		return
 	}
 
-	if newStudent.Email == "" {
+	if request.Email == "" {
 		http.Error(w, "Email cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	createdStudent, err := studentRepo.CreateStudent(newStudent)
+	newStudent := models.Student{
+		Name:  request.Name,
+		Age:   request.Age,
+		Email: request.Email,
+	}
 
+	createdStudent, err := studentRepo.CreateStudent(r.Context(), newStudent)
 	if err != nil {
 		var pgErr *pgconn.PgError
 
@@ -135,11 +140,12 @@ func postStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository
 // @Accept json
 // @Produce json
 // @Param id path int true "Student ID"
-// @Param student body models.Student true "Updated student details"
+// @Param student body models.UpdateStudentRequest true "Updated student details"
 // @Success 200 {object} models.Student
 // @Failure 400 {string} string "Invalid student ID, JSON or student details"
 // @Failure 404 {string} string "Student not found"
 // @Failure 409 {string} string "Email already exists"
+// @Failure 500 {string} string "Failed to update student"
 // @Router /students/{id} [put]
 func updateStudent(w http.ResponseWriter, r *http.Request, studentRepo *repository.StudentRepository) {
 	getId := r.PathValue("id")
@@ -150,31 +156,37 @@ func updateStudent(w http.ResponseWriter, r *http.Request, studentRepo *reposito
 		return
 	}
 
-	var updatedStudent models.Student
+	var request models.UpdateStudentRequest
 
-	err = json.NewDecoder(r.Body).Decode(&updatedStudent)
+	err = json.NewDecoder(r.Body).Decode(&request)
 
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if updatedStudent.Name == "" {
+	if request.Name == "" {
 		http.Error(w, "Name cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	if updatedStudent.Age <= 0 {
+	if request.Age <= 0 {
 		http.Error(w, "Age must be greater than zero", http.StatusBadRequest)
 		return
 	}
 
-	if updatedStudent.Email == "" {
+	if request.Email == "" {
 		http.Error(w, "Email cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	updatedStudent, err = studentRepo.UpdateStudent(intId, updatedStudent)
+	updatedStudent := models.Student{
+		Name:  request.Name,
+		Age:   request.Age,
+		Email: request.Email,
+	}
+
+	updatedStudent, err = studentRepo.UpdateStudent(r.Context(), intId, updatedStudent)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -217,8 +229,7 @@ func deleteStudent(w http.ResponseWriter, r *http.Request, studentRepo *reposito
 		return
 	}
 
-	err = studentRepo.DeleteStudent(intId)
-
+	err = studentRepo.DeleteStudent(r.Context(), intId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -236,7 +247,6 @@ func deleteStudent(w http.ResponseWriter, r *http.Request, studentRepo *reposito
 // @title Student REST API
 // @version 1.0
 // @description REST API for managing student records.
-// @host localhost:8081
 func main() {
 	db, err := database.Connect()
 
@@ -266,14 +276,32 @@ func main() {
 	http.HandleFunc("PUT /students/{id}", func(w http.ResponseWriter, r *http.Request) {
 		updateStudent(w, r, studentRepo)
 	})
+
 	http.HandleFunc("DELETE /students/{id}", func(w http.ResponseWriter, r *http.Request) {
 		deleteStudent(w, r, studentRepo)
 	})
+
 	// Register Swagger UI route.
 	http.HandleFunc("/swagger/", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
+		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	log.Println("Server starting on http://localhost:8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	// Read the IP address and port provided by the hosting platform.
+ip := os.Getenv("IP")
+port := os.Getenv("PORT")
+
+// Use local development defaults when environment variables are unavailable.
+if ip == "" {
+	ip = "localhost"
+}
+
+if port == "" {
+	port = "8081"
+}
+
+// JoinHostPort correctly handles IPv6 addresses.
+address := net.JoinHostPort(ip, port)
+
+log.Printf("Server starting on %s", address)
+log.Fatal(http.ListenAndServe(address, nil))
 }

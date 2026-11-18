@@ -17,3 +17,12 @@
 .vscode/
 *.sw?
 
+# VS Code
+.vscode/*
+!.vscode/
+!.vscode/launch.json
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
