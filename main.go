@@ -14,7 +14,7 @@ import (
 	"github.com/ChetnaBhati343/RestAPI/repository"
 	"github.com/jackc/pgx/v5/pgconn"
 	httpSwagger "github.com/swaggo/http-swagger"
-	"net"
+
 	"os"
 )
 
@@ -286,22 +286,17 @@ func main() {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	// Read the IP address and port provided by the hosting platform.
-ip := os.Getenv("IP")
-port := os.Getenv("PORT")
+	// Read the port provided by the hosting platform.
+	port := os.Getenv("PORT")
 
-// Use local development defaults when environment variables are unavailable.
-if ip == "" {
-	ip = "localhost"
-}
+	// Use the default port for local development.
+	if port == "" {
+		port = "8081"
+	}
 
-if port == "" {
-	port = "8081"
-}
+	// Listen on all network interfaces.
+	address := ":" + port
 
-// JoinHostPort correctly handles IPv6 addresses.
-address := net.JoinHostPort(ip, port)
-
-log.Printf("Server starting on %s", address)
-log.Fatal(http.ListenAndServe(address, nil))
+	log.Printf("Server starting on %s", address)
+	log.Fatal(http.ListenAndServe(address, nil))
 }
